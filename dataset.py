@@ -13,8 +13,8 @@ def load_dataframe():
 
 # Print the first five entries
 
-X = load_dataframe()
-print(X.head())
+#X = load_dataframe()
+#print(X.head())
 
 
 # Remove the first two non-numeric characters from the first two columns
