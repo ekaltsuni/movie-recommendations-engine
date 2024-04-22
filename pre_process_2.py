@@ -33,6 +33,6 @@ def R_dataframe():
     return R
 
 
-# Print the number of occurrences for each user
-# print("Number of occurrences for each user:")
-# print(filtered_users)
+# Print R
+R = R_dataframe()
+print(R)
