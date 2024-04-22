@@ -1,0 +1,213 @@
+:!chapter-signifier:
+:toc:
+:toclevels: 6
+:sectanchorts:
+:sectnums:
+:icons: font
+:source-highlighter: rouge
+:asciimath:
+:doctype: book
+
+= Αλγόριθμοι Σύστασης με Χρήση Τεχνητών Νευρωνικών Δικτύων και Τεχνικών Ομαδοποίησης Δεδομένων
+
+== Θέμα 1: Προ-επεξεργασία Δεδομένων
+
+Προτού προχωρήσουμε στις απαντήσεις των ερωτημάτων, φορτώνουμε τα δεδομένα ως ένα latexmath:[dataframe] χρησιμοποιώντας τις βιβλιοθήκες numpy και pandas της Python.
+
+----
+import numpy as np
+import pandas as pd
+
+
+def load_dataframe():
+
+    # Load the dataset
+    dataset = np.load('Dataset.npy')
+    # Convert to dataframe
+    X = pd.DataFrame(dataset)
+
+    return X
+----
+
+Εκτυπώνοντας το latexmath:[head] του latexmath:[dataframe], έχουμε μια προεσκόπιση της δομής των δεδομένων μας (figure 1).
+
+----
+# Print the first five entries
+X = load_dataframe()
+print(X.head())
+----
+
+.Προεσκόπιση δεδομένων από Dataset.npy
+image::img1.png[200, 400]
+
+<<<
+
+
+=== Ερώτημα 1
+
+Βρίσκουμε τις στήλες latexmath:[users] (στήλη 1) και latexmath:[items] (στήλη 2) του latexmath:[dataframe] και καλούμε τη μέθοδο latexmath:[nunique] για να βρούμε τα πλήθη των μοναδικών χρηστών και αντικειμένων.
+
+----
+
+from dataset import load_dataframe
+
+X = load_dataframe()
+
+# Split the users' and items' columns
+X['users'] = X[0].str.split(',').str[0]
+X['items'] = X[0].str.split(',').str[1]
+
+# Getting the unique count of users and items
+unique_users = X['users'].nunique()
+unique_items = X['items'].nunique()
+
+print("Unique count of users:", unique_users)
+print("Unique count of items:", unique_items)
+
+----
+
+Εκτυπώνοντας στην οθόνη βλέπουμε το παρακάτω αποτέλεσμα.
+
+.Count of unique users and items
+image::img2.png[200, 400]
+
+<<<
+
+
+=== Ερώτημα 2
+
+Καλούμε τη μέθοδο latexmath:[load_dataframe] και υπολογίζουμε πόσες φορές εμφανίζεται κάθε χρήστης για να βρούμε τα άκρα των δεδομένων μας. Παρατηρούμε ότι κανένας χρήστης δεν έχει δώσει πάνω από 29 αξιολογήσεις (πάνω όριο).
+
+Επιλέγουμε το υποσύνολο που βρίσκεται μεταξύ latexmath:[Rmin = 3] και latexmath:[Rmax = 50]. Τώρα τα δεδομένα μας έχουν μήκος 358.
+
+Στη συνέχεια φτιάχνουμε το latexmath:[dataframe R] που προκύπτει από τους χρήστες που έχουμε φιλτράρει και δίνουμε στις στήλες του τα αντίστοιχα ονόματα: latexmath:[Users, Items, Ratings, Timestamp].
+
+Τέλος, μετατρέπουμε τα δεδομένα των πρώτων τριών στηλών σε latexmath:[integers] και τα δεδομένα της τελευταίας στήλης σε latexmath:[datetime objects].
+
+----
+
+def R_dataframe():
+    # Load the DataFrame
+    X = load_dataframe()
+    # Count the occurrences of each user
+    user_counts = X.iloc[:, 0].value_counts()
+
+    # Filter users who appear between Rmin = 3 and Rmax = 50 times (length: 358, for Rmax = 2 we'd have 8662)
+    # no one has given more than 29 ratings
+    filtered_users = user_counts[(user_counts >= 3) & (user_counts <= 50)]
+
+    # Create R dataframe with rows of users appearing in filtered_users
+    R = X[X.iloc[:, 0].isin(filtered_users.index)]
+    # Splitting the single column into separate columns
+    R = R[0].str.split(',', expand=True)
+    R.columns = ['Users', 'Items', 'Ratings', 'Timestamp']
+
+    # Convert to numeric values
+    R['Ratings'] = pd.to_numeric(R['Ratings'])
+
+
+    R['Users'] = R['Users'].str.extract('(\d+)').astype(int)
+    R['Items'] = R['Items'].str.extract('(\d+)').astype(int)
+
+    # Convert 'Timestamp' column to datetime object
+    R['Timestamp'] = pd.to_datetime(R['Timestamp'])
+    return R
+
+
+# Print R
+R = R_dataframe()
+print(R)
+
+----
+
+<<<
+
+Εκτυπώνοντας στην οθόνη βλέπουμε το παρακάτω αποτέλεσμα.
+
+.Προεσκόπιση δεδομένων του R dataframe
+image::img3.png[200, 400]
+
+<<<
+
+=== Ερώτημα 3
+
+Για να αναπαραστήσουμε γραφικά τα ιστογράμματα του ερωτήματος, έχουμε χρησιμοποιήσει τη βιβλιοθήκη latexmath:[matplotlib] της Python.
+
+==== Ιστόγραμμα συχνότητας για το πλήθος των αξιολογήσεων του κάθε χρήστη.
+
+Φορτώνουμε το latexmath:[dataframe R] όπως υπολογίστηκε στο υπο-ερώτημα 2 και ομαδοποιούμε τα δεδομένα του ως προς τις αξιολογήσεις ανά μοναδικό χρήστη και φτιάχνουμε το ιστόγραμμα.
+
+....
+
+# Load the updated dataframe that occurred from Q2 where Rmin = 3 and Rmax = 50
+R = R_dataframe()
+
+# Grouping by the values of ratings and users
+ratings_per_user = R.groupby('Ratings')['Users'].nunique()
+
+plt.hist(ratings_per_user, bins=50)
+
+# Plotting the histogram
+ratings_per_user.plot(kind='bar', stacked=True)
+
+# Setting labels and title
+plt.xlabel('Ratings')
+plt.ylabel('No. of Users')
+plt.title('Histogram')
+
+# Display the plot
+plt.show()
+
+....
+
+<<<
+
+Εκτυπώνοντας στην οθόνη βλέπουμε το παρακάτω αποτέλεσμα.
+
+.Ιστόγραμμα συχνότητας για το πλήθος των αξιολογήσεων του κάθε χρήστη
+image::img4.png[]
+
+<<<
+
+==== Ιστόγραμμα συχνότητας για το χρονικό εύρος των αξιολογήσεων του κάθε χρήστη.
+
+Φορτώνουμε το latexmath:[dataframe R] όπως υπολογίστηκε στο υπο-ερώτημα 2 και ομαδοποιούμε τα δεδομένα των χρηστών υπολογίζοντας το ελάχιστο και μέγιστο διάστημα σε μέρες που μεσολάβησε για να δοθούν όλες οι αξιολογήσεις ανά χρήστη.
+
+Τέλος, προσαρμόζουμε τις παραμέτρους της γραφικής αναπαράστασης του ιστογράμματος ώστε να είναι πιο ευανάγνωστη η πληροφορία.
+
+....
+
+# Load the updated dataframe that occurred from Q2 where Rmin = 3 and Rmax = 50
+R = R_dataframe()
+
+# Plotting the histogram
+user_timestamp_range = (R.groupby('Users')['Timestamp']
+                        .agg(lambda x: (x.max() - x.min()).days))
+
+values, bins, _ = plt.hist(user_timestamp_range, bins=50)
+
+# Showing only time ranges that matches user activity (non-zero values).
+nonzero_indices = [i for i, val in enumerate(values) if val != 0]
+plt.xticks(bins[nonzero_indices])
+
+# Showing count of users for each time range
+for i in range(len(bins) - 1):
+    if values[i] != 0:  # Check if the count is non-zero
+        plt.text(bins[i] + (bins[i+1] - bins[i]) / 2, values[i], str(int(values[i])), ha='center', va='bottom')
+
+# Setting labels and title
+plt.xlabel('Time range in days')
+plt.ylabel('No. of Users')
+plt.title('Histogram')
+
+# Display the plot
+plt.show()
+
+....
+
+<<<
+
+Εκτυπώνοντας στην οθόνη βλέπουμε το παρακάτω αποτέλεσμα.
+
+.Ιστόγραμμα συχνότητας για το χρονικό εύρος των αξιολογήσεων του κάθε χρήστη.
+image::img5.png[]
