@@ -1,6 +1,8 @@
 from pre_process_2 import R_dataframe
 from sklearn.cluster import KMeans
 import numpy as np
+from sklearn.metrics import pairwise_distances
+
 
 R = R_dataframe()
 
@@ -11,36 +13,29 @@ R = R.pivot_table(index='Users', columns='Items', values='Ratings', fill_value=0
 feature_vectors = R.values
 
 # Custom Jaccard coefficient computation function
-def custom_jaccard_coefficient(cluster_labels, cluster_i_indices, cluster_j_indices):
-    intersection = np.intersect1d(cluster_i_indices, cluster_j_indices)
-    union = np.union1d(cluster_i_indices, cluster_j_indices)
+def custom_jaccard_coefficient(u, v):
+    intersection = np.intersect1d(u, v)
+    union = np.union1d(u, v)
     coefficient = 1.0 - len(intersection) / len(union)
     return coefficient
 
-# Set number of clusters
-L = 5
+# Set the number of clusters (L)
+L = 3
 
-# Create KMeans model
-kmeans = KMeans(n_clusters=L)
+# Initialize KMeans
+kmeans = KMeans(n_clusters=L, init='k-means++')
 
-# Fit KMeans model and get cluster labels
-cluster_labels = kmeans.fit_predict(feature_vectors)
+# Compute the pairwise Jaccard distances between all pairs of users
+pairwise_jaccard_distances = pairwise_distances(feature_vectors, metric=custom_jaccard_coefficient)
 
-# Compute the Jaccard coefficients between clusters
-jaccard_coefficients = np.zeros((L, L))
+# Fit KMeans to the pairwise Jaccard distances
+cluster_labels = kmeans.fit_predict(pairwise_jaccard_distances)
 
-for i in range(L):
-    for j in range(i + 1, L):
-        # Get the indices of users belonging to cluster i and cluster j
-        cluster_i_indices = np.where(cluster_labels == i)[0]
-        cluster_j_indices = np.where(cluster_labels == j)[0]
 
-        # Compute the Jaccard coefficient between cluster i and cluster j
-        jaccard_coefficient = custom_jaccard_coefficient(cluster_labels, cluster_i_indices, cluster_j_indices)
-        jaccard_coefficients[i][j] = jaccard_coefficient
-        jaccard_coefficients[j][i] = jaccard_coefficient
-
-# Display Jaccard coefficients
-for i in range(L):
-    for j in range(i + 1, L):
-        print("Jaccard coefficient between cluster", i, "and cluster", j, ":", jaccard_coefficients[i][j])
+# Print the clusters
+for cluster_idx in range(L):
+    print("Cluster", cluster_idx, ":")
+    cluster_users = np.where(cluster_labels == cluster_idx)[0]
+    for user_idx in cluster_users:
+        print("User", user_idx)
+    print()
