@@ -4,6 +4,7 @@ from sklearn.cluster import KMeans
 import numpy as np
 from sklearn.metrics import pairwise_distances
 import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
 
 R = R_dataframe()
 
@@ -68,18 +69,22 @@ print("Custom distances 1d:", custom_distances_1d)
 kmeans = KMeans(n_clusters=L, init='k-means++')
 
 # Fit kmeans to data with the custom distance
-kmeans.fit(feature_vectors, sample_weight=custom_distances)
+kmeans_result = kmeans.fit(feature_vectors)
+#print kmeans_result
+
+pca = PCA(n_components=2)
+pca_result = pca.fit_transform(feature_vectors)
+#print(pca_result)
 
 cluster_labels = kmeans.labels_
 
-#R['Cluster'] = kmeans.labels_
-#print(R)
 
-
+# #R['Cluster'] = kmeans.labels_
+# #print(R)
 
 # Visualize clusters for n_clusters = 3
 plt.figure(figsize=(10, 6))
-plt.scatter(feature_vectors[:, 0], feature_vectors[:, 1], c=cluster_labels.labels_, cmap='viridis', alpha=0.5)
+plt.scatter(pca_result[:, 0], pca_result[:, 1], c=cluster_labels, cmap='viridis', alpha=0.5)
 plt.title('User Clusters (n_clusters = 3)')
 plt.xlabel('Feature 1')
 plt.ylabel('Feature 2')
