@@ -211,3 +211,100 @@ plt.show()
 
 .Ιστόγραμμα συχνότητας για το χρονικό εύρος των αξιολογήσεων του κάθε χρήστη.
 image::img5.png[]
+
+
+== Θέμα 3: Αλγόριθμοι Παραγωγής Συστάσεων με Χρήση Τεχνητών Νευρωνικών Δικτύων
+
+=== Ερώτημα 1
+
+Εισάγουμε τις βιβλιοθήκες latexmath:[sklearn.cluster] και latexmath:[sklearn.metrics] και φορτώνουμε τα δεδομένα μας από τη συνάρτηση latexmath:[R_dataframe()].
+....
+
+R = R_dataframe()
+
+....
+
+Τα δεδομένα μετασχηματίζονται σε έναν πίνακα όπου κάθε σειρά αντιπροσωπεύει έναν χρήστη (user) και κάθε στήλη ένα αντικείμενο (item). Οι τιμές είναι οι βαθμολογίες (ratings).
+....
+
+# Dataframe where each row represents a user and each column represents an item
+R = R.pivot_table(index='Users', columns='Items', values='Ratings', fill_value=0)
+
+....
+
+Εξάγουμε από το dataframe τα διανύσματα χαρακτηριστικών (feature vectors) για κάθε χρήστη.
+....
+
+# Feature vectors for each user
+feature_vectors = R.values
+
+....
+
+Ορίζουμε τη συνάρτηση latexmath:[custom_jaccard_coefficient(u, v)] για να υπολογίσουμε το συντελεστή Jaccard μεταξύ δύο διανυσμάτων.
+
+Στον ονομαστή του συντελεστή έχουμε τις ταινίες που αξιολόγησαν από κοινού οι χρήστες u και v και στον παρονομαστή την ένωση των ταινιών που αξιολόγησαν συνολικά.
+....
+
+# Custom Jaccard coefficient computation function
+def custom_jaccard_coefficient(u, v):
+    intersection = np.intersect1d(u, v)
+    union = np.union1d(u, v)
+    coefficient = 1.0 - len(intersection) / len(union)
+    return coefficient
+
+....
+
+Ορίζουμε τον αριθμό των ομάδων (clusters) και αρχικοποιούμε τον αλγόριθμο latexmath:[KMeans].
+
+....
+
+# Set the number of clusters (L)
+L = 3
+
+# Initialize KMeans
+kmeans = KMeans(n_clusters=L, init='k-means++')
+
+....
+
+Υπολογίζουμε τις αποστάσεις latexmath:[Jaccard].
+
+....
+
+# Compute the pairwise Jaccard distances between all pairs of users
+pairwise_jaccard_distances = pairwise_distances(feature_vectors, metric=custom_jaccard_coefficient)
+
+....
+
+Εκπαιδεύουμε τον latexmath:[KMeans].
+
+....
+
+# Fit KMeans to the pairwise Jaccard distances
+cluster_labels = kmeans.fit_predict(pairwise_jaccard_distances)
+....
+
+Εκτυπώνουμε τις ομάδες (clusters).
+
+....
+
+# Print the clusters
+for cluster_idx in range(L):
+    print("Cluster", cluster_idx, ":")
+    cluster_users = np.where(cluster_labels == cluster_idx)[0]
+    for user_idx in cluster_users:
+        print("User", user_idx)
+    print()
+
+....
+
+Ο κώδικας κατατάσσει τους χρήστες σε 3 ομάδες (clusters) χρησιμοποιώντας τον αλγόριθμο KMeans και αποστάσεις Jaccard, και εκτυπώνει τους χρήστες που ανήκουν σε κάθε ομάδα όπως φαίνονται παρακάτω.
+
+.Cluster 1
+image::3.1.1.png[]
+
+.Cluster 2
+image::3.1.2.png[]
+
+.Cluster 3
+image::3.1.3.png[]
+
