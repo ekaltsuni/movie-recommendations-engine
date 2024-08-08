@@ -1,5 +1,4 @@
 from pre_process_2 import R_dataframe
-import pandas as pd
 from sklearn.cluster import KMeans
 import numpy as np
 from sklearn.metrics import pairwise_distances
@@ -20,17 +19,6 @@ def compute_binary_vector(feature_vectors):
     return binary_vectors
 
 binary_vectors = compute_binary_vector(feature_vectors)
-
-
-#
-# def reduce_vectors(vector):
-#     nmf = NMF(n_components=1)
-#     nmf.fit(vector)
-#     reduced_vectors = nmf.transform(feature_vectors)
-#     return reduced_vectors
-
-#reduced_feature_vectors = reduce_vectors(feature_vectors)
-#reduced_binary_vectors = reduce_vectors(binary_vectors)
 
 # euclidean distance based on equation
 def euclidean_distance(R_u, R_v, lambda_u, lambda_v):
@@ -77,10 +65,6 @@ pca_result = pca.fit_transform(feature_vectors)
 #print(pca_result)
 
 cluster_labels = kmeans.labels_
-
-
-# #R['Cluster'] = kmeans.labels_
-# #print(R)
 
 # Visualize clusters for n_clusters = 3
 plt.figure(figsize=(10, 6))

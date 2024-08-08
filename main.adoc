@@ -160,7 +160,6 @@ plt.show()
 
 ....
 
-<<<
 
 Εκτυπώνοντας στην οθόνη βλέπουμε το παρακάτω αποτέλεσμα.
 
@@ -205,13 +204,143 @@ plt.show()
 
 ....
 
-<<<
 
 Εκτυπώνοντας στην οθόνη βλέπουμε το παρακάτω αποτέλεσμα.
 
 .Ιστόγραμμα συχνότητας για το χρονικό εύρος των αξιολογήσεων του κάθε χρήστη.
 image::img5.png[]
 
+<<<
+
+== Θέμα 2: Αλγόριθμοι Ομαδοποίησης Δεδομένων
+
+=== Ερώτημα 1
+
+Φορτώνουμε τις σχετικές βιβλιοθήκες και τα δεδομένα μας.
+....
+
+from pre_process_2 import R_dataframe
+from sklearn.cluster import KMeans
+import numpy as np
+from sklearn.metrics import pairwise_distances
+import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
+
+R = R_dataframe()
+
+....
+
+Δημιουργούμε έναν πίνακα όπου οι σειρές αντιπροσωπεύουν χρήστες και οι στήλες αντικείμενα. Οι τιμές του πίνακα είναι οι βαθμολογίες που έδωσαν οι χρήστες στα αντικείμενα, με 0 όπου δεν υπάρχει βαθμολογία.
+....
+
+# Dataframe where each row represents a user and each column represents an item
+R = R.pivot_table(index='Users', columns='Items', values='Ratings', fill_value=0)
+
+....
+Δημιουργούμε τα feature vectors.
+....
+# Feature vectors for each user
+feature_vectors = R.values
+....
+
+Ορίζουμε τον αριθμό των clusters και δημιουργούμε τα binary vectors τα οποία μετατρέπουν τα χαρακτηριστικά σε δυαδική μορφή (1 αν υπάρχει βαθμολογία, 0 αν δεν υπάρχει), δημιουργώντας δυαδικά διανύσματα για κάθε χρήστη.
+
+....
+# Set the number of clusters (L)
+L = 3
+def compute_binary_vector(feature_vectors):
+    binary_vectors = np.where(feature_vectors > 0, 1, 0)
+    return binary_vectors
+
+binary_vectors = compute_binary_vector(feature_vectors)
+
+....
+
+Υπολογίζουμε την προσαρμοσμένη ευκλείδεια απόσταση μεταξύ των χρηστών, λαμβάνοντας υπόψη τα δυαδικά διανύσματα (δηλαδή ποια αντικείμενα έχουν βαθμολογηθεί).
+
+....
+# euclidean distance based on equation
+def euclidean_distance(R_u, R_v, lambda_u, lambda_v):
+    # Υπολογισμός της απόστασης με βάση τη συνθήκη λj(k)
+    squared_diff = np.sum(((R_u - R_v) ** 2) * lambda_u * lambda_v)
+    distance = np.sqrt(squared_diff)
+    return distance
+
+
+# Compute pairwise distances using the custom distance function
+custom_distances = pairwise_distances(feature_vectors, metric=euclidean_distance, **{'lambda_u': binary_vectors, 'lambda_v': binary_vectors})
+
+print(custom_distances)
+
+# Check the shapes of feature_vectors and custom_distances
+print("Feature vectors shape:", feature_vectors.shape)
+print("Binary vectors shape:", binary_vectors.shape)
+print("Custom distances shape:", custom_distances.shape)
+
+....
+
+Μετατρέπουμε τον πίνακα αποστάσεων σε ένα μονοδιάστατο πίνακα και τυπώνουμε τα αποτελέσματα.
+....
+
+#Flatten custom distances array to create a 1D array of weights
+custom_distances_1d = custom_distances.flatten()
+print("Custom distances 1d shape:", custom_distances_1d.shape)
+
+#print("Reduced custom distances shape:", reduced_custom_distances.shape)
+
+
+print("Feature vectors:", feature_vectors)
+print("Binary vectors:", binary_vectors)
+print("Custom distances:", custom_distances)
+
+print("Custom distances 1d:", custom_distances_1d)
+
+....
+
+Με τον αλγόριθμο KMeans, ομαδοποιούμε τους χρήστες σε L clusters με βάση τα διανύσματα χαρακτηριστικών.
+
+....
+# Initialize Kmeans
+kmeans = KMeans(n_clusters=L, init='k-means++')
+
+# Fit kmeans to data with the custom distance
+kmeans_result = kmeans.fit(feature_vectors)
+#print kmeans_result
+
+....
+
+Με την τεχνική Principal Component Analysis (PCA) μειώνουμε τις διαστάσεις των δεδομένων σε δύο, για να είναι δυνατή η οπτικοποίηση των clusters σε ένα 2D διάγραμμα.
+....
+pca = PCA(n_components=2)
+pca_result = pca.fit_transform(feature_vectors)
+#print(pca_result)
+
+cluster_labels = kmeans.labels_
+
+....
+
+Δημιουργούμε ένα διάγραμμα διασποράς όπου κάθε σημείο αντιπροσωπεύει έναν χρήστη και το χρώμα του αντιστοιχεί στο cluster στο οποίο ανήκει.
+
+....
+# Visualize clusters for n_clusters = 3
+plt.figure(figsize=(10, 6))
+plt.scatter(pca_result[:, 0], pca_result[:, 1], c=cluster_labels, cmap='viridis', alpha=0.5)
+plt.title('User Clusters (n_clusters = 3)')
+plt.xlabel('Feature 1')
+plt.ylabel('Feature 2')
+plt.colorbar()
+plt.show()
+
+....
+
+==== Διάγραμμα Διασποράς Ομαδοποίησης
+
+Τρέχοντας τον κώδικα θα έχουμε το παρακάτω αποτέλεσμα ομαδοποίησης των χρηστών σε clusters.
+
+.Clustering Scatterplot
+image::2.1.png[]
+
+<<<
 
 == Θέμα 3: Αλγόριθμοι Παραγωγής Συστάσεων με Χρήση Τεχνητών Νευρωνικών Δικτύων
 
@@ -306,6 +435,9 @@ image::3.1.2.png[]
 .Cluster 3
 image::3.1.3.png[]
 
+<<<
+
+
 === Ερώτημα 1
 
 Η μετρική αυτή ποσοτικοποιεί το πλήθος των κοινών αξιολογήσεων δυο χρηστών. Το κλάσμα μπορεί να πάρει τιμές απο 0 εως 1. Αν δύο χρήστες δεν έχουν καμία κοινή αξιολόγηση η απόσταση θα είναι ίση με 1. Διαφορετικά, αν έχουν αξιολογήσει και οι δυο το ίδιο σύνολο ταινιών η απόσταση θα είναι ιση με 0.
@@ -317,6 +449,8 @@ image::3.1.3.png[]
 Η απόσταση συνημιτόνου (cosine similarity) μας δίνει το προφίλ ενός χρήστη συναρτήσει ενός άλλου με βάση την κατεύθυνση των διανυσμάτων. Συγκεκριμένα, ανάλογα με το πρόσημο του παράγοντα λ έχουμε θετική ή αρνητική συσχέτιση. Η μετρική αυτή, αν και πιο πολύπλοκη από την ευκλείδεια απόσταση, μπορεί να είναι χρήσιμη σε δεδομένα που η ομοιότητα κατεύθυνσης είναι πιο σημαντική από την ομοιότητα μεγέθους.
 
 Τελικά, η επιλογή της κατάλληλης μετρικής εξαρτάται από τα χαρακτηριστικά των δεδομένων και το στόχο της ομαδοποίησης.
+
+<<<
 
 
 === Ερώτημα 2
@@ -423,3 +557,111 @@ image::3.2.1.png[]
 
 .Model Summary for Cluster 0
 image::3.2.2.png[]
+
+<<<
+
+=== Ερώτημα 3 & 4
+
+Εδώ έχουμε τον ίδιο κώδικα με το προηγούμενο ερώτημα με παραλλαγή της κεντρικής συνάρτησης.
+
+Συγκεκριμένα, δημιουργούμε τους πίνακες X και Υ, όπου το X περιέχει τα διανύσματα χαρακτηριστικών των γειτόνων (neighbors) και το Υ περιέχει τις πραγματικές αξιολογήσεις των χρηστών.
+
+....
+for cluster_idx in range(L):
+    print(f"Training MLP for cluster {cluster_idx}...")
+
+    # Get users in the current cluster
+    cluster_users = np.where(cluster_labels == cluster_idx)[0]
+    cluster_data = feature_vectors[cluster_users]
+
+    # Find k nearest neighbors for each user in the cluster
+    knn = NearestNeighbors(n_neighbors=k, metric=custom_jaccard_coefficient)
+    knn.fit(cluster_data)
+    neighbors = knn.kneighbors(cluster_data, return_distance=False)
+
+    # Prepare training data
+    X = []
+    y = []
+
+    for user_idx, user_neighbors in enumerate(neighbors):
+        X.append(cluster_data[user_neighbors])
+        y.append(cluster_data[user_idx])
+
+    X = np.array(X).reshape(len(cluster_users), -1)
+    y = np.array(y)
+....
+
+Στη συνέχεια, χρησιμοποιούμε τη συνάρτηση latexmath:[np.hstack] για να συνενώσουμε οριζόντια τα χαρακτηριστικά (X) και τις ετικέτες (y) σε ένα ενιαίο πίνακα δεδομένων (data).
+
+....
+   # Horizontal concatenation of feature vectors (neighbors) and target vectors (user preferences)
+    data = np.hstack((X, y))
+....
+
+Χρησιμοποιούμε το latexmath:[train_test_split] από τη βιβλιοθήκη sklearn για να χωρίσουμε τα δεδομένα σε training set (90%) και testing set (10%) και εκπαιδεύουμε το μοντέλο.
+
+....
+    # Random split into training (90%) and testing (10%) sets
+    train_data, test_data = train_test_split(data, test_size=0.1, random_state=42)
+
+    # Split into features and labels
+    X_train = train_data[:, :-y.shape[1]]
+    y_train = train_data[:, -y.shape[1]:]
+    X_test = test_data[:, :-y.shape[1]]
+    y_test = test_data[:, -y.shape[1]:]
+
+    # Build and train MLP
+    model = Sequential()
+    model.add(Input(shape=(X_train.shape[1],)))
+    model.add(Dense(32, activation='relu'))
+    model.add(Dense(y_train.shape[1], activation='linear'))
+
+    model.compile(optimizer='adam', loss='mean_squared_error')
+    model.fit(X_train, y_train, epochs=10, batch_size=32, validation_data=(X_test, y_test), verbose=1)
+
+    mlp_models.append(model)
+....
+
+Χρησιμοποιούμε τη μέθοδο latexmath:[predict] για να προβλέψουμε τις τιμές τόσο για το training όσο και για το testing set.
+
+....
+
+    # Evaluate the model using MAE
+    y_train_pred = model.predict(X_train)
+    y_test_pred = model.predict(X_test)
+
+....
+
+Τέλος, υπολογίζουμε το μέσο απόλυτο σφάλμα (Mean Absolute Error, MAE) χρησιμοποιώντας τη συνάρτηση latexmath:[mean_absolute_error] από τη βιβλιοθήκη latexmath:[sklearn.metrics].
+
+....
+
+    train_mae = mean_absolute_error(y_train, y_train_pred)
+    test_mae = mean_absolute_error(y_test, y_test_pred)
+
+    # Store the results
+    results.append({
+        'Cluster': cluster_idx,
+        'Train MAE': train_mae,
+        'Test MAE': test_mae
+    })
+
+# Print the results
+results_df = pd.DataFrame(results)
+print(results_df)
+
+# Save models
+for idx, model in enumerate(mlp_models):
+    model.save(f'mlp_cluster_{idx}.keras')
+
+print("Training complete!")
+....
+
+==== Ερμηνεία Αποτελεσμάτων
+
+Τα αποτελέσματα που θα πάρουμε έχουν παρόμοια μορφή με τα αποτελέσματα του προηγούμενου ερωτήματος (2), με τη διαφορά της εκτύπωσης του πίνακα latexmath:[results_df] που περιέχει την ακρίβεια εκπαίδευσης (Train MAE) και ελέγχου (Test MAE).
+
+Ο πίνακας αυτός δείχνει το μέσο απόλυτο σφάλμα (MAE) για την εκπαίδευση και τον έλεγχο για κάθε cluster, παρέχοντας έτσι μια καλή εικόνα για την ακρίβεια των νευρωνικών δικτύων που εκπαιδεύτηκαν.
+
+.Train MAE and Test MAE Results
+image::3.3.png[]
