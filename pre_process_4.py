@@ -2,12 +2,9 @@
 import pandas as pd
 import numpy as np
 from dataset import load_dataframe
-from scipy.sparse import csr_matrix 
+from scipy.sparse import lil_matrix
 
-# Προ-επεξεργασία Δεδομένων
-# 4.
 
-# Load the DataFrame
 X = load_dataframe()
 
 
@@ -25,37 +22,35 @@ X['Ratings'] = pd.to_numeric(X['Ratings'])
 X['Users'] = X['Users'].str.extract('(\d+)').astype(int)
 X['Items'] = X['Items'].str.extract('(\d+)').astype(int)
 
+#map each user and each item to array index
+def mapData(S):
+    #Get unique items
+    unique_itemSet=set(S['Items'].unique())
+    sortedItems=sorted(unique_itemSet)
+    
+    #Get unique users
+    unique_userSet=set(S['Users'].unique())
+    sortedUsers=sorted(unique_userSet)
+    
+    #map each item to array index
+    itemToIndex=dict()
+    for i in range(len(sortedItems)):
+        itemToIndex[sortedItems[i]]=i
+    
+    #map each user to array index
+    userToIndex=dict()
+    for i in range(len(sortedUsers)):
+        userToIndex[sortedUsers[i]]=i
+    return [unique_itemSet,itemToIndex,unique_userSet,userToIndex]
 
 
 
-#Get unique items
-itemSet=set(X['Items'])
-sortedItems=sorted(itemSet)
-
-#Get unique users
-userSet=set(X['Users'])
-sortedUsers=sorted(userSet)
-
-#map each item to array index
-itemToIndex=dict()
-for i in range(len(sortedItems)):
-    itemToIndex[sortedItems[i]]=i
-
-#map each user to array index
-userToIndex=dict()
-for i in range(len(sortedUsers)):
-    userToIndex[sortedUsers[i]]=i
-
-#Create an empty sparse array with int8 elements
-sparseMatrix = csr_matrix((len(userSet), len(itemToIndex)),
-                          dtype = np.int8).toarray()
+[unique_itemSet,itemToIndex,unique_userSet,userToIndex]=mapData(X)
 
 
-#Fill in the sparse array
+R = lil_matrix((len(unique_userSet), len(itemToIndex)), dtype=np.int8)
 for i in range(len(X)):
     if i%100000==0:
       print('{0:.0%}'.format(i/len(X)))
-    sparseMatrix[userToIndex[X.iloc[i]["Users"]]][itemToIndex[X.iloc[i]["Items"]]]=X.iloc[i]["Ratings"]
+    R[userToIndex[X.iloc[i]["Users"]], itemToIndex[X.iloc[i]["Items"]]] = int(X.iloc[i]["Ratings"])
     
-    
-
